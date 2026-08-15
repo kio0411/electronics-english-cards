@@ -23,6 +23,9 @@
     .bookbar label { color:var(--muted); font-size:12px; font-weight:700; }
     .bookbar select { max-width:78%; min-width:0; appearance:none; color:var(--green-dark); font-weight:800; text-align:right; background:transparent; border:0; padding:2px 22px 2px 0; background-image:linear-gradient(45deg,transparent 50%,var(--green-dark) 50%),linear-gradient(135deg,var(--green-dark) 50%,transparent 50%); background-position:calc(100% - 10px) 50%,calc(100% - 5px) 50%; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
     .deckbar select { min-width:0; appearance:none; color:var(--green-dark); font-weight:700; background:transparent; border:0; padding:2px 22px 2px 0; background-image:linear-gradient(45deg,transparent 50%,var(--green-dark) 50%),linear-gradient(135deg,var(--green-dark) 50%,transparent 50%); background-position:calc(100% - 10px) 50%,calc(100% - 5px) 50%; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+    .modebar { display:grid; grid-template-columns:1fr 1fr; gap:5px; padding:4px; margin-bottom:18px; border:1px solid var(--line); border-radius:8px; background:#f1f5f2; }
+    .modebar button { min-height:36px; border:0; border-radius:5px; color:var(--muted); background:transparent; font-size:13px; font-weight:800; }
+    .modebar button[aria-selected="true"] { color:var(--green-dark); background:#fff; box-shadow:0 1px 3px rgba(20,43,38,.12); }
     .count { color:var(--muted); font-size:13px; }
     .progress { height:5px; overflow:hidden; margin:11px 0 18px; background:#e6ece8; border-radius:5px; }
     .progress > i { display:block; height:100%; width:0; background:var(--green); border-radius:inherit; transition:width .3s ease; }
@@ -57,6 +60,24 @@
     dialog h2 { margin:4px 0 10px; font-size:19px; }
     dialog p { color:var(--muted); font-size:14px; line-height:1.65; }
     dialog button { min-height:40px; padding:0 15px; border:0; border-radius:6px; background:var(--green-dark); color:white; font-weight:700; }
+    .reader { display:flex; flex:1; flex-direction:column; }
+    .reader-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:15px; }
+    .reader-top select { width:100%; min-width:0; border:0; color:var(--green-dark); background:transparent; font-weight:800; font-size:16px; }
+    .reader-count { padding-top:3px; color:var(--muted); font-size:12px; white-space:nowrap; }
+    .passage { padding:25px 24px 24px; border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow); }
+    .passage-tag { color:var(--green); font-size:12px; font-weight:800; letter-spacing:.06em; }
+    .passage h1 { margin:9px 0 7px; color:var(--green-dark); font-family:Georgia,"Times New Roman",serif; font-size:clamp(25px,6vw,33px); line-height:1.14; }
+    .passage-meta { margin:0 0 21px; color:var(--muted); font-size:13px; }
+    .passage-text { margin:0; color:#263430; font-family:Georgia,"Times New Roman",serif; font-size:18px; line-height:1.72; text-align:left; }
+    .translation { margin:20px 0 0; padding-top:18px; border-top:1px solid var(--line); color:var(--ink); font-size:15px; line-height:1.75; }
+    .reader-actions { display:grid; grid-template-columns:1fr 48px; gap:9px; margin-top:14px; }
+    .reader-actions button, .reader-nav button { min-height:48px; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--green-dark); font-weight:800; }
+    .reader-actions .translation-toggle { border-color:var(--green-dark); background:var(--green-dark); color:#fff; }
+    .reader-nav { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:10px; }
+    .keyword-panel { margin-top:18px; }
+    .keyword-panel h2 { margin:0 0 9px; color:var(--muted); font-size:12px; }
+    .keyword-list { display:flex; flex-wrap:wrap; gap:7px; }
+    .keyword-list span { padding:6px 9px; border:1px solid var(--line); border-radius:5px; color:var(--green); background:#fff; font-size:12px; font-weight:700; }
     @media (min-width:720px) { .app { padding-top:30px; } .card { min-height:390px; } }
   </style>
 </head>
@@ -66,6 +87,8 @@
       <div class="brand"><span class="mark">E</span><span>电英词卡</span></div>
       <span class="streak" id="streak">今天第 1 次</span>
     </header>
+    <div class="modebar" role="tablist" aria-label="学习模式"><button id="cardsMode" role="tab" aria-selected="true">单词复习</button><button id="readingMode" role="tab" aria-selected="false">论文朗读</button></div>
+    <div id="cardsView">
     <div class="bookbar"><label for="book">词书</label><select id="book" aria-label="选择词书"></select></div>
     <div class="deckbar"><select id="deck" aria-label="选择词库"></select><span class="count" id="count"></span></div>
     <div class="progress" aria-label="本轮进度"><i id="progress"></i></div>
@@ -93,9 +116,24 @@
       <div class="stat"><b id="today">0</b><span>今日完成</span></div>
     </section>
     <div class="footer"><span id="source">词库来自《专业英语》</span><button class="text-button" id="about">使用说明</button></div>
+    </div>
+    <section class="reader" id="readingView" hidden aria-live="polite">
+      <div class="reader-top"><select id="passageSelect" aria-label="选择朗读材料"></select><span class="reader-count" id="passageCount"></span></div>
+      <article class="passage">
+        <div class="passage-tag" id="passageTopic"></div>
+        <h1 id="passageTitle"></h1>
+        <p class="passage-meta" id="passageMeta"></p>
+        <p class="passage-text" id="passageText"></p>
+        <p class="translation" id="passageTranslation" hidden></p>
+        <div class="reader-actions"><button class="translation-toggle" id="translationToggle">显示参考译文</button><button id="passageListen" aria-label="朗读段落" title="朗读段落">&#128266;</button></div>
+      </article>
+      <section class="keyword-panel"><h2>关键词</h2><div class="keyword-list" id="keywordList"></div></section>
+      <div class="reader-nav"><button id="previousPassage">上一段</button><button id="nextPassage">下一段</button></div>
+    </section>
   </div>
   <dialog id="aboutDialog"><h2>电英词卡</h2><p>这是根据两份专业英语词汇 PDF 整理的离线词卡。点按卡片或“显示释义”后，根据掌握程度评分。复习记录保存在本设备浏览器中；更换浏览器或清除网站数据会重置记录。</p><button id="closeAbout">知道了</button></dialog>
   <script src="additional-book.js"></script>
+  <script src="reading-passages.js"></script>
   <script>
     const decks = {
       '电路基础': `ideal voltage source|理想电压源
@@ -472,6 +510,18 @@ word|字`
     els.rating.addEventListener('click', e => { const button = e.target.closest('[data-rating]'); if (button) rate(button.dataset.rating); });
     $('about').addEventListener('click', () => $('aboutDialog').showModal());
     $('closeAbout').addEventListener('click', () => $('aboutDialog').close());
+    const passages = window.readingPassages;
+    let passageIndex = 0;
+    function renderPassage() { const item = passages[passageIndex]; $('passageSelect').value = String(passageIndex); $('passageCount').textContent = `${passageIndex + 1} / ${passages.length}`; $('passageTopic').textContent = item.topic; $('passageTitle').textContent = item.title; $('passageMeta').textContent = `${item.words} words · about 1 minute`; $('passageText').textContent = item.text; $('passageTranslation').textContent = item.translation; $('passageTranslation').hidden = true; $('translationToggle').textContent = '显示参考译文'; $('keywordList').replaceChildren(...item.keywords.map(word => { const tag = document.createElement('span'); tag.textContent = word; return tag; })); }
+    passages.forEach((item, index) => $('passageSelect').add(new Option(`${index + 1}. ${item.title}`, String(index))));
+    $('passageSelect').addEventListener('change', e => { passageIndex = Number(e.target.value); renderPassage(); });
+    $('translationToggle').addEventListener('click', () => { const target = $('passageTranslation'); target.hidden = !target.hidden; $('translationToggle').textContent = target.hidden ? '显示参考译文' : '隐藏参考译文'; });
+    $('previousPassage').addEventListener('click', () => { passageIndex = (passageIndex + passages.length - 1) % passages.length; renderPassage(); });
+    $('nextPassage').addEventListener('click', () => { passageIndex = (passageIndex + 1) % passages.length; renderPassage(); });
+    $('passageListen').addEventListener('click', () => { speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(passages[passageIndex].text); utterance.lang = 'en-US'; utterance.rate = .82; speechSynthesis.speak(utterance); });
+    function setMode(mode) { const reading = mode === 'reading'; $('cardsView').hidden = reading; $('readingView').hidden = !reading; $('cardsMode').setAttribute('aria-selected', String(!reading)); $('readingMode').setAttribute('aria-selected', String(reading)); if (reading) renderPassage(); }
+    $('cardsMode').addEventListener('click', () => setMode('cards'));
+    $('readingMode').addEventListener('click', () => setMode('reading'));
     document.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); reveal(); } if (revealed && ['1','2','3','4'].includes(e.key)) rate(['again','hard','good','easy'][Number(e.key)-1]); });
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
     chooseWord();
