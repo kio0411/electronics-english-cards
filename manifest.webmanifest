@@ -1,0 +1,10 @@
+{
+  "name": "电英词卡",
+  "short_name": "电英词卡",
+  "description": "专业英语词汇复习",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fbfcfa",
+  "theme_color": "#0e2523",
+  "lang": "zh-CN"
+}

@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e2523" />
+  <meta name="description" content="专业英语词汇复习" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>电英词卡</title>
+  <style>
+    :root { --ink:#13211f; --muted:#66736f; --line:#d9e0dc; --paper:#fbfcfa; --panel:#ffffff; --mint:#d7f0df; --green:#0e6b50; --green-dark:#0e2523; --yellow:#f4d87a; --red:#ce5d48; --shadow:0 15px 35px rgba(20, 43, 38, .11); }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100svh; color:var(--ink); background:var(--paper); font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; letter-spacing:0; }
+    button, select { font:inherit; }
+    button { cursor:pointer; }
+    .app { width:min(100%, 620px); min-height:100svh; margin:auto; padding:calc(18px + env(safe-area-inset-top)) 20px calc(22px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:22px; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:18px; }
+    .mark { width:32px; height:32px; display:grid; place-items:center; background:var(--green-dark); color:white; border-radius:7px; font-size:15px; }
+    .streak { color:var(--green); font-size:13px; font-weight:700; white-space:nowrap; }
+    .deckbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .bookbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+    .bookbar label { color:var(--muted); font-size:12px; font-weight:700; }
+    .bookbar select { max-width:78%; min-width:0; appearance:none; color:var(--green-dark); font-weight:800; text-align:right; background:transparent; border:0; padding:2px 22px 2px 0; background-image:linear-gradient(45deg,transparent 50%,var(--green-dark) 50%),linear-gradient(135deg,var(--green-dark) 50%,transparent 50%); background-position:calc(100% - 10px) 50%,calc(100% - 5px) 50%; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+    .deckbar select { min-width:0; appearance:none; color:var(--green-dark); font-weight:700; background:transparent; border:0; padding:2px 22px 2px 0; background-image:linear-gradient(45deg,transparent 50%,var(--green-dark) 50%),linear-gradient(135deg,var(--green-dark) 50%,transparent 50%); background-position:calc(100% - 10px) 50%,calc(100% - 5px) 50%; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+    .count { color:var(--muted); font-size:13px; }
+    .progress { height:5px; overflow:hidden; margin:11px 0 18px; background:#e6ece8; border-radius:5px; }
+    .progress > i { display:block; height:100%; width:0; background:var(--green); border-radius:inherit; transition:width .3s ease; }
+    main { flex:1; display:flex; flex-direction:column; }
+    .card { position:relative; min-height:348px; display:flex; flex:1; flex-direction:column; justify-content:center; padding:35px 30px 28px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); text-align:center; touch-action:manipulation; }
+    .label { position:absolute; top:20px; left:22px; color:var(--green); font-size:12px; font-weight:800; letter-spacing:.08em; }
+    .term { margin:0; overflow-wrap:anywhere; color:var(--green-dark); font-family:Georgia,"Times New Roman",serif; font-size:clamp(31px, 8vw, 47px); font-weight:600; line-height:1.12; }
+    .phonetic { min-height:24px; margin:15px 0 4px; color:var(--muted); font-size:15px; }
+    .meaning { display:none; margin:10px 0 0; color:var(--ink); font-size:clamp(23px, 6vw, 30px); font-weight:750; line-height:1.35; }
+    .note { display:none; margin:9px 0 0; color:var(--muted); font-size:13px; }
+    .card.revealed .meaning, .card.revealed .note { display:block; }
+    .listen { position:absolute; right:14px; bottom:14px; width:38px; height:38px; display:grid; place-items:center; border:1px solid var(--line); background:#fff; border-radius:50%; color:var(--green); font-size:17px; }
+    .hint { display:flex; justify-content:center; align-items:center; min-height:50px; color:var(--muted); font-size:13px; }
+    .controls { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+    .controls[hidden] { display:none; }
+    .controls button { min-height:52px; padding:7px 4px; border:1px solid var(--line); border-radius:7px; background:white; color:var(--ink); font-weight:750; font-size:14px; }
+    .controls button small { display:block; margin-top:3px; color:var(--muted); font-size:10px; font-weight:600; }
+    .controls .again { border-color:#e6b6aa; color:#9f3b2d; }
+    .controls .hard { border-color:#e8d28c; color:#81650c; }
+    .controls .good { border-color:#9ccfb3; color:#176b45; }
+    .controls .easy { background:var(--green-dark); border-color:var(--green-dark); color:#fff; }
+    .controls .easy small { color:#c8dfd5; }
+    .reveal { width:100%; min-height:55px; border:0; border-radius:7px; background:var(--green-dark); color:#fff; font-weight:800; font-size:16px; }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; margin-top:24px; background:var(--line); border:1px solid var(--line); border-radius:7px; overflow:hidden; }
+    .stat { padding:13px 8px 12px; background:var(--panel); text-align:center; }
+    .stat b { display:block; color:var(--green-dark); font-size:19px; }
+    .stat span { display:block; margin-top:2px; color:var(--muted); font-size:11px; }
+    .footer { display:flex; justify-content:space-between; align-items:center; min-height:37px; margin-top:13px; color:var(--muted); font-size:12px; }
+    .text-button { padding:7px 0; border:0; background:transparent; color:var(--green); font-weight:700; }
+    dialog { width:min(calc(100% - 32px), 460px); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); color:var(--ink); }
+    dialog::backdrop { background:rgba(9, 30, 26, .42); }
+    dialog h2 { margin:4px 0 10px; font-size:19px; }
+    dialog p { color:var(--muted); font-size:14px; line-height:1.65; }
+    dialog button { min-height:40px; padding:0 15px; border:0; border-radius:6px; background:var(--green-dark); color:white; font-weight:700; }
+    @media (min-width:720px) { .app { padding-top:30px; } .card { min-height:390px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand"><span class="mark">E</span><span>电英词卡</span></div>
+      <span class="streak" id="streak">今天第 1 次</span>
+    </header>
+    <div class="bookbar"><label for="book">词书</label><select id="book" aria-label="选择词书"></select></div>
+    <div class="deckbar"><select id="deck" aria-label="选择词库"></select><span class="count" id="count"></span></div>
+    <div class="progress" aria-label="本轮进度"><i id="progress"></i></div>
+    <main>
+      <section class="card" id="card" aria-live="polite">
+        <span class="label" id="label">专业英语</span>
+        <h1 class="term" id="term"></h1>
+        <p class="phonetic" id="phonetic"></p>
+        <p class="meaning" id="meaning"></p>
+        <p class="note" id="note">想起来了吗？选择熟悉程度以安排下次复习</p>
+        <button class="listen" id="listen" aria-label="朗读单词" title="朗读单词">&#128266;</button>
+      </section>
+      <div class="hint" id="hint">先在脑中回忆中文含义</div>
+      <button class="reveal" id="reveal">显示释义</button>
+      <div class="controls" id="rating" hidden>
+        <button class="again" data-rating="again">再来<small>1 分钟</small></button>
+        <button class="hard" data-rating="hard">困难<small>10 分钟</small></button>
+        <button class="good" data-rating="good">记住<small>明天</small></button>
+        <button class="easy" data-rating="easy">熟练<small>4 天后</small></button>
+      </div>
+    </main>
+    <section class="stats" aria-label="学习统计">
+      <div class="stat"><b id="due">0</b><span>待复习</span></div>
+      <div class="stat"><b id="learned">0</b><span>已掌握</span></div>
+      <div class="stat"><b id="today">0</b><span>今日完成</span></div>
+    </section>
+    <div class="footer"><span id="source">词库来自《专业英语》</span><button class="text-button" id="about">使用说明</button></div>
+  </div>
+  <dialog id="aboutDialog"><h2>电英词卡</h2><p>这是根据两份专业英语词汇 PDF 整理的离线词卡。点按卡片或“显示释义”后，根据掌握程度评分。复习记录保存在本设备浏览器中；更换浏览器或清除网站数据会重置记录。</p><button id="closeAbout">知道了</button></dialog>
+  <script src="additional-book.js"></script>
+  <script>
+    const decks = {
+      '电路基础': `ideal voltage source|理想电压源
+ideal current source|理想电流源
+volt-ampere characteristic|伏安特性
+electromotive force|电动势
+voltage|电压
+current|电流
+potential difference|电位差
+circuit|电路
+circuit element|电路元件
+resistance|电阻
+resistor|电阻器
+inductance|电感
+inductor|电感器
+capacitance|电容
+capacitor|电容器
+reference direction|参考方向
+reference potential|参考电位
+Ohm's law|欧姆定律
+Kirchhoff's law|基尔霍夫定律
+node|结点
+branch|支路
+loop|回路
+mesh|网孔
+branch current analysis|支路电流法
+mesh current analysis|网孔电流法
+node voltage analysis|结点电位法
+source transformations|电源变换
+superposition theorem|叠加原理
+network|网络
+passive two-terminal network|无源二端网络
+active two-terminal network|有源二端网络
+Thevenin's theorem|戴维宁定理
+Norton's theorem|诺顿定理
+open circuit|开路（断路）
+short circuit|短路
+direct current circuit (dc)|直流电路
+alternating current circuit (ac)|交流电路
+sinusoidal ac circuit|正弦交流电路
+average value|平均值
+effective value|有效值
+root-mean-square value (rms)|均方根值
+instantaneous value|瞬时值
+reactance|电抗
+capacitive reactance|容抗
+inductive reactance|感抗
+Farad|法拉
+Henry|亨利
+impedance|阻抗
+complex impedance|复数阻抗
+initial phase|初相位
+phase difference|相位差
+phase inversion|倒相，反相
+frequency|频率
+angular frequency|角频率
+Hertz|赫兹
+phasor|相量
+phasor diagram|相量图
+active power|有功功率
+reactive power|无功功率
+apparent power|视在功率
+power factor|功率因数
+power-factor compensation|功率因数补偿
+series resonance|串联谐振
+parallel resonance|并联谐振
+resonance frequency|谐振频率
+frequency characteristic|频率特性
+cutoff frequency|截止频率
+quality factor|品质因数
+pass-band|通频带
+bandwidth (BW)|带宽
+filter|滤波器
+first-order filter|一阶滤波器
+second-order filter|二阶滤波器
+low-pass filter|低通滤波器
+high-pass filter|高通滤波器
+band-pass filter|带通滤波器
+band-stop filter|带阻滤波器
+transfer function|转移函数
+Bode diagram|波特图
+Fourier series|傅立叶级数
+three-phase circuit|三相电路
+three-phase source|三相电源
+three-phase power|三相功率
+star connection (Y-connection)|星形连接
+triangular connection (delta connection)|三角形连接
+neutral line|中线
+transient state|暂态
+steady state|稳态
+transient response|暂态响应
+law of switch|换路定理
+first-order circuit|一阶电路
+three-factor method|三要素法
+time constant|时间常数
+integrating circuit|积分电路
+differentiating circuit|微分电路`,
+      '模拟电子': `open|开路
+shorted|短路
+amplifier|放大器
+forward bias|正向偏置
+backward bias|反向偏置
+quiescent point (Q-point)|静态工作点
+equivalent circuit|等效电路
+overall voltage gain|总的电压放大倍数
+saturation|饱和
+cut-off|截止
+amplifier region|放大区
+saturation region|饱和区
+cut-off region|截止区
+distortion|失真
+saturation distortion|饱和失真
+cut-off distortion|截止失真
+zero drift|零点漂移
+positive feedback|正反馈
+negative feedback|负反馈
+series negative feedback|串联负反馈
+parallel negative feedback|并联负反馈
+input resistance|输入电阻
+output resistance|输出电阻
+load resistance|负载电阻
+dynamic resistance|动态电阻
+load current|负载电流
+sinusoidal voltage|正弦电压
+diode|二极管
+light emitting|发光
+equating|方程式
+laser|激光
+ideal model|理想模型
+small signal model|小信号模型
+bipolar junction transistor|三极管
+construction|结构
+characteristics|特性曲线
+amplification region|放大区
+biasing circuits|偏置电路
+breakdown voltage|击穿电压
+common-base configuration|共基组态
+common-emitter configuration|共射组态
+complementary symmetry|互补对称
+current gain|电流增益
+graphical analysis|图解分析
+voltage-shunt|电压并联
+voltage-series|电压串联
+current-series|电流串联
+current-shunt|电流并联
+block diagram|方框图
+basic amplifier|基本放大器
+feedback network|反馈网络
+open-loop gain|开环增益
+closed-loop gain|闭环增益
+loop gain|环路增益
+desensitivity|反馈深度
+frequency response|频率响应
+nonlinear distortion|非线性失真
+method of analysis|分析方法
+stability|稳定性
+Bode plot|波特图
+field effect transistor|场效应管
+complementary symmetry power amplifier|互补对称功率放大器
+complementary Darlington circuit|互补型复合管
+threshold voltage|开启电压
+transformer-coupled|变压器耦合
+push pull|推挽式
+power transistor|功率管
+second breakdown|二次击穿
+covalent bond|共价键
+common-mode signal|共模信号
+common-mode rejection ratio|共模抑制比
+active filter|有源滤波电路
+active load|有源负载
+multistage amplifier|多级放大电路
+bonded electron|束缚电子
+free electron|自由电子
+operational amplifier|运算放大器
+comparator with hysteresis|迟滞比较器
+acceptor impurities|受主杂质
+donor impurities|施主杂质
+integrator|积分电路
+oscillator|振荡电路
+differentiator|微分电路
+capacitance filter|电容滤波电路
+drift|漂移
+temperature drift|温度漂移
+hybrid|混合物
+output capacitorless circuit|OCL 电路
+output transformerless circuit|OTL 电路
+by-pass capacitor|旁路电容
+reverse saturation current|反向饱和电流
+depletion|耗尽层
+thermistor|热敏电阻
+Zener diode|稳压管
+multiplication circuit|乘法运算电路
+division circuit|除法运算电路
+series voltage regulator|串联型稳压电路
+alternating current path|交流通路
+direct current path|直流通路
+graphical method|图解法
+photodiode|光电二极管
+phototransistor|光电三极管
+zero-crossing comparator|过零比较器
+isolated amplifier|隔离放大器
+noninverting input terminal|同向输入端
+cross over distortion|交越失真
+N type semiconductors|N 型半导体
+P type semiconductors|P 型半导体
+rectifier|整流电路
+half wave rectifier|半波整流
+voltage doubler|倍压整流
+ripple factor|脉动系数
+bridge rectifier|桥式整流
+regenerative comparator|滞回比较器
+criterion of oscillation|振荡条件
+self excited oscillation|自激振荡`,
+      '数字电路': `adder|加法器
+address|地址
+ALU|算术逻辑单元
+analog switch|模拟开关
+AND|与门
+AND-NOR gate|与或非门
+arithmetic circuit|算术电路
+array|阵列
+multivibrator|多谐振荡器
+asynchronous counter|异步计数器
+bidirectional|双向
+binary|二进制
+binary-coded decimal (BCD)|二十进制
+bistable|双稳态
+bit|位
+boolean algebra|布尔代数
+bus|总线
+carry|进位
+channel|沟道
+clock|时钟
+CMOS|互补金属氧化物半导体
+coding|编码
+collector|集电极
+comparator|比较器
+complement|补码
+constant|常数
+constraint|约束
+constraint condition|约束条件
+constraint term|约束项
+counter|计数器
+data selector|数据选择器
+decimal|十进制
+decoder|译码器
+diagram|图
+digital circuit|数字电路
+digital comparator|数值比较器
+digital display|数字显示
+don't care terms|无关项
+draw off current|拉电流
+driving equation|驱动方程
+dual slope|双斜率
+dynamic|动态
+edge-triggered flip flop|边沿触发器
+emitter|发射极
+encoder|编码器
+expression|表达式
+fall edge|下降沿
+fall time|下降时间
+fan in|扇入
+fan out|扇出
+flash memory|闪烁存储器
+flip-flop|触发器
+frequency division|分频
+function|函数
+function generator|函数发生器
+gate|门
+gray code|格雷码
+hexadecimal|十六进制
+hold time|保持时间
+inverter|反相器
+Karnaugh map|卡诺图
+latch|锁存器
+latch up|锁定效应
+least significant bit|最低有效位
+level|电平
+master-slave flip flop|主从触发器
+maxterm|最大项
+memory|存储器
+minterm|最小项
+most significant bit|最高有效位
+NAND|与非门
+nixie light|数码管
+noise margin|噪声容限
+NOR|或非门
+NOT|非门
+octal|八进制
+odd even check|奇偶校验
+open collector|集电极开路
+OR|或门
+priority encoder|优先编码器
+PLD|可编程逻辑阵列
+propagation delay time|传输延迟时间
+pull up resistor|上拉电阻
+pulse|脉冲
+quantification|量化
+race-hazard|竞争-冒险
+random access|随机访问
+read only|只读
+read write control|读写控制
+recovery time|恢复时间
+reference voltage|参考电压
+refresh|刷新
+register|寄存器
+reset|复位
+resolution|分辨率
+rise edge|上升沿
+rise time|上升时间
+schmitt trigger|施密特触发器
+serial carry adder|串行进位加法器
+setup time|建立时间
+shift register|移位寄存器
+state|状态
+state diagram|状态转换图
+state table|状态转换表
+static|静态
+storage time|存储时间
+subtractor|减法器
+symbol|符号
+synchronous|同步
+synchronous counter|同步计数器
+three state output gate|三态输出门
+threshold voltage|门限电压
+timer|定时器
+timing diagram|时序图
+transfer characteristics|传输特性
+transmission gate (TG)|传输门
+trigger|触发
+truth table|真值表
+TTL|二极管-三极管逻辑电路
+up/down counter|加减计数器
+weight|权
+word|字`
+    };
+    const books = {
+      '专业英语': decks,
+      '东大电路、模电、半导体': {
+        '电路、模电、数电': Object.values(decks).join('\n'),
+        ...window.additionalBookData
+      }
+    };
+    const words = Object.entries(books).flatMap(([book, deckSet]) => Object.entries(deckSet).flatMap(([deck, source]) => source.split('\n').map((line, index) => {
+      const [term, meaning] = line.split('|');
+      return { id: book === '专业英语' ? `${deck}-${index}` : `${book}-${deck}-${index}`, book, deck, term, meaning };
+    })));
+    const key = 'dianying-cards-v1';
+    const defaultState = { reviews:{}, today:'', doneToday:0, studiedToday:0, session:0 };
+    let state = JSON.parse(localStorage.getItem(key) || 'null') || defaultState;
+    const todayKey = new Date().toISOString().slice(0, 10);
+    if (state.today !== todayKey) { state.today = todayKey; state.doneToday = 0; state.studiedToday = 0; }
+    let activeBook = '专业英语', activeDeck = '全部词库', current, revealed = false;
+    const $ = id => document.getElementById(id);
+    const els = { book:$('book'), deck:$('deck'), card:$('card'), label:$('label'), term:$('term'), phonetic:$('phonetic'), meaning:$('meaning'), count:$('count'), progress:$('progress'), due:$('due'), learned:$('learned'), today:$('today'), reveal:$('reveal'), rating:$('rating'), hint:$('hint'), streak:$('streak'), source:$('source') };
+    function save() { localStorage.setItem(key, JSON.stringify(state)); }
+    function scopedWords() { const inBook = words.filter(w => w.book === activeBook); return activeDeck === '全部词库' ? inBook : inBook.filter(w => w.deck === activeDeck); }
+    function dueWords() { const now = Date.now(); return scopedWords().filter(w => !state.reviews[w.id] || state.reviews[w.id].next <= now); }
+    function chooseWord() { const due = dueWords(); const pool = due.length ? due : scopedWords(); const except = pool.filter(w => !current || w.id !== current.id); current = (except.length ? except : pool)[Math.floor(Math.random() * (except.length ? except.length : pool.length))]; revealed = false; renderCard(); }
+    function renderCard() { if (!current) return; els.label.textContent = current.deck; els.term.textContent = current.term; els.meaning.textContent = current.meaning; els.phonetic.textContent = current.term.length < 22 ? 'English technical vocabulary' : ''; els.card.classList.remove('revealed'); els.reveal.hidden = false; els.rating.hidden = true; els.hint.textContent = '先在脑中回忆中文含义'; renderStats(); }
+    function renderStats() { const scoped = scopedWords(), due = dueWords(); const learned = scoped.filter(w => (state.reviews[w.id]?.level || 0) >= 3).length; els.due.textContent = due.length; els.learned.textContent = learned; els.today.textContent = state.doneToday; els.count.textContent = `${scoped.length} 词 · ${due.length} 待复习`; els.progress.style.width = `${Math.min(100, state.session * 10)}%`; els.streak.textContent = state.studiedToday ? `今天已复习 ${state.studiedToday} 词` : '从第 1 张开始'; els.source.textContent = activeBook === '专业英语' ? '词库来自《专业英语》' : '词库来自《电路、模电、半导体英语词汇》'; }
+    function reveal() { if (revealed) return; revealed = true; els.card.classList.add('revealed'); els.reveal.hidden = true; els.rating.hidden = false; els.hint.textContent = '现在，选择你对这个词的掌握程度'; }
+    function rate(rating) { if (!revealed) return reveal(); const minutes = { again:1, hard:10, good:1440, easy:5760 }[rating]; const currentReview = state.reviews[current.id] || { level:0 }; const delta = { again:-1, hard:0, good:1, easy:2 }[rating]; state.reviews[current.id] = { level:Math.max(0, Math.min(5, currentReview.level + delta)), next:Date.now() + minutes * 60 * 1000 }; state.doneToday += 1; state.studiedToday += 1; state.session += 1; save(); chooseWord(); }
+    function speak() { if (!('speechSynthesis' in window) || !current) return; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(current.term); utterance.lang = 'en-US'; utterance.rate = .78; speechSynthesis.speak(utterance); }
+    function updateDeckOptions() { els.deck.replaceChildren(new Option('全部词库', '全部词库')); Object.keys(books[activeBook]).forEach(name => els.deck.add(new Option(name, name))); els.deck.value = activeDeck; }
+    Object.keys(books).forEach(name => els.book.add(new Option(name, name)));
+    els.book.value = activeBook;
+    updateDeckOptions();
+    els.book.addEventListener('change', e => { activeBook = e.target.value; activeDeck = '全部词库'; state.session = 0; updateDeckOptions(); chooseWord(); });
+    els.deck.addEventListener('change', e => { activeDeck = e.target.value; state.session = 0; chooseWord(); });
+    els.reveal.addEventListener('click', reveal);
+    els.card.addEventListener('click', e => { if (e.target.id !== 'listen') reveal(); });
+    $('listen').addEventListener('click', e => { e.stopPropagation(); speak(); });
+    els.rating.addEventListener('click', e => { const button = e.target.closest('[data-rating]'); if (button) rate(button.dataset.rating); });
+    $('about').addEventListener('click', () => $('aboutDialog').showModal());
+    $('closeAbout').addEventListener('click', () => $('aboutDialog').close());
+    document.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); reveal(); } if (revealed && ['1','2','3','4'].includes(e.key)) rate(['again','hard','good','easy'][Number(e.key)-1]); });
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+    chooseWord();
+  </script>
+</body>
+</html>
