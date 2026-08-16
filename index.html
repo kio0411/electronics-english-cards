@@ -19,6 +19,9 @@
     .mark { width:32px; height:32px; display:grid; place-items:center; background:var(--green-dark); color:white; border-radius:7px; font-size:15px; }
     .streak { color:var(--green); font-size:13px; font-weight:700; white-space:nowrap; }
     .deckbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .studybar { display:flex; align-items:center; gap:10px; margin-top:10px; }
+    .studybar select { min-width:0; flex:1; appearance:none; color:var(--green-dark); font-weight:700; background:#f1f5f2; border:1px solid var(--line); border-radius:6px; padding:9px 30px 9px 11px; background-image:linear-gradient(45deg,transparent 50%,var(--green-dark) 50%),linear-gradient(135deg,var(--green-dark) 50%,transparent 50%); background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+    .wordbook-button { min-width:68px; min-height:40px; border:1px solid var(--green-dark); border-radius:6px; background:#fff; color:var(--green-dark); font-weight:800; }
     .bookbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
     .bookbar label { color:var(--muted); font-size:12px; font-weight:700; }
     .bookbar select { max-width:78%; min-width:0; appearance:none; color:var(--green-dark); font-weight:800; text-align:right; background:transparent; border:0; padding:2px 22px 2px 0; background-image:linear-gradient(45deg,transparent 50%,var(--green-dark) 50%),linear-gradient(135deg,var(--green-dark) 50%,transparent 50%); background-position:calc(100% - 10px) 50%,calc(100% - 5px) 50%; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
@@ -38,6 +41,8 @@
     .note { display:none; margin:9px 0 0; color:var(--muted); font-size:13px; }
     .card.revealed .meaning, .card.revealed .note { display:block; }
     .listen { position:absolute; right:14px; bottom:14px; width:38px; height:38px; display:grid; place-items:center; border:1px solid var(--line); background:#fff; border-radius:50%; color:var(--green); font-size:17px; }
+    .flag { position:absolute; right:14px; top:14px; width:38px; height:38px; border:1px solid var(--line); border-radius:50%; background:#fff; color:var(--muted); font-size:19px; line-height:1; }
+    .flag.is-flagged { border-color:#e8d28c; color:#9a7200; background:#fff7dc; }
     .hint { display:flex; justify-content:center; align-items:center; min-height:50px; color:var(--muted); font-size:13px; }
     .controls { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
     .controls[hidden] { display:none; }
@@ -60,6 +65,18 @@
     dialog h2 { margin:4px 0 10px; font-size:19px; }
     dialog p { color:var(--muted); font-size:14px; line-height:1.65; }
     dialog button { min-height:40px; padding:0 15px; border:0; border-radius:6px; background:var(--green-dark); color:white; font-weight:700; }
+    .wordbook-dialog { max-height:min(720px, calc(100svh - 32px)); padding:18px; }
+    .wordbook-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .wordbook-head h2 { margin:0; }
+    .wordbook-head button { min-width:40px; padding:0 12px; }
+    .wordbook-filter { width:100%; margin:14px 0 10px; border:1px solid var(--line); border-radius:6px; padding:10px; color:var(--green-dark); background:#f1f5f2; font:inherit; font-weight:700; }
+    .wordbook-summary { margin:0 0 10px; color:var(--muted); font-size:13px; }
+    .wordbook-list { max-height:min(540px, calc(100svh - 190px)); overflow:auto; border-top:1px solid var(--line); }
+    .wordbook-row { width:100%; display:grid; grid-template-columns:1fr auto; gap:12px; padding:13px 2px; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; color:var(--ink); text-align:left; }
+    .wordbook-row strong { display:block; color:var(--green-dark); font-family:Georgia,"Times New Roman",serif; font-size:17px; overflow-wrap:anywhere; }
+    .wordbook-row span { display:block; margin-top:3px; color:var(--muted); font-size:13px; }
+    .wordbook-row small { align-self:center; color:var(--green); font-size:12px; font-weight:800; white-space:nowrap; }
+    .wordbook-empty { margin:30px 0; color:var(--muted); text-align:center; font-size:14px; }
     .reader { display:flex; flex:1; flex-direction:column; }
     .reader-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:15px; }
     .reader-top select { width:100%; min-width:0; border:0; color:var(--green-dark); background:transparent; font-weight:800; font-size:16px; }
@@ -118,6 +135,7 @@
     <div id="cardsView">
     <div class="bookbar"><label for="book">词书</label><select id="book" aria-label="选择词书"></select></div>
     <div class="deckbar"><select id="deck" aria-label="选择词库"></select><span class="count" id="count"></span></div>
+    <div class="studybar"><select id="order" aria-label="选择背诵顺序"><option value="review">复习优先</option><option value="sequential">词书顺序</option><option value="random">随机顺序</option><option value="difficult">不熟悉优先</option></select><button class="wordbook-button" id="openWordbook">词本</button></div>
     <div class="progress" aria-label="本轮进度"><i id="progress"></i></div>
     <main>
       <section class="card" id="card" aria-live="polite">
@@ -126,6 +144,7 @@
         <p class="phonetic" id="phonetic"></p>
         <p class="meaning" id="meaning"></p>
         <p class="note" id="note">想起来了吗？选择熟悉程度以安排下次复习</p>
+        <button class="flag" id="toggleUnfamiliar" aria-label="标为不熟悉" title="标为不熟悉">○</button>
         <button class="listen" id="listen" aria-label="朗读单词" title="朗读单词">&#128266;</button>
       </section>
       <div class="hint" id="hint">先在脑中回忆中文含义</div>
@@ -180,7 +199,8 @@
       <div class="interview-nav"><button id="previousInterview">上一题</button><button id="nextInterview">下一题</button></div>
     </section>
   </div>
-  <dialog id="aboutDialog"><h2>电英词卡</h2><p>这是根据两份专业英语词汇 PDF 整理的离线词卡。点按卡片或“显示释义”后，根据掌握程度评分。复习记录保存在本设备浏览器中；更换浏览器或清除网站数据会重置记录。</p><button id="closeAbout">知道了</button></dialog>
+  <dialog id="aboutDialog"><h2>电英词卡</h2><p>这是根据两份专业英语词汇 PDF 整理的离线词卡。点按卡片或“显示释义”后，根据掌握程度评分。学习位置、复习次数和不熟悉词本会保存在本设备浏览器中；更换浏览器或清除网站数据会重置记录。</p><button id="closeAbout">知道了</button></dialog>
+  <dialog class="wordbook-dialog" id="wordbookDialog"><div class="wordbook-head"><h2>词本</h2><button id="closeWordbook" aria-label="关闭词本" title="关闭词本">×</button></div><select class="wordbook-filter" id="wordbookFilter" aria-label="筛选词本"><option value="all">全部词</option><option value="unfamiliar">不熟悉</option><option value="learning">学习中</option><option value="learned">已掌握</option></select><p class="wordbook-summary" id="wordbookSummary"></p><div class="wordbook-list" id="wordbookList"></div></dialog>
   <script src="additional-book.js"></script>
   <script src="reading-passages.js"></script>
   <script src="interview-questions.js"></script>
@@ -531,33 +551,125 @@ word|字`
       const [term, meaning] = line.split('|');
       return { id: book === '专业英语' ? `${deck}-${index}` : `${book}-${deck}-${index}`, book, deck, term, meaning };
     })));
-    const key = 'dianying-cards-v1';
-    const defaultState = { reviews:{}, today:'', doneToday:0, studiedToday:0, session:0 };
-    let state = JSON.parse(localStorage.getItem(key) || 'null') || defaultState;
+    const key = 'dianying-cards-v2';
+    const legacyKey = 'dianying-cards-v1';
+    const defaultState = { reviews:{}, today:'', doneToday:0, studiedToday:0, session:0, currentId:null, activeBook:'专业英语', activeDeck:'全部词库', order:'review' };
+    let state = JSON.parse(localStorage.getItem(key) || localStorage.getItem(legacyKey) || 'null') || defaultState;
+    state.reviews ||= {};
+    state.currentId ??= null;
+    state.activeBook = books[state.activeBook] ? state.activeBook : '专业英语';
+    state.activeDeck ??= '全部词库';
+    state.order ??= 'review';
     const todayKey = new Date().toISOString().slice(0, 10);
     if (state.today !== todayKey) { state.today = todayKey; state.doneToday = 0; state.studiedToday = 0; }
-    let activeBook = '专业英语', activeDeck = '全部词库', current, revealed = false;
+    let activeBook = state.activeBook, activeDeck = state.activeDeck, current, revealed = false;
     const $ = id => document.getElementById(id);
-    const els = { book:$('book'), deck:$('deck'), card:$('card'), label:$('label'), term:$('term'), phonetic:$('phonetic'), meaning:$('meaning'), count:$('count'), progress:$('progress'), due:$('due'), learned:$('learned'), today:$('today'), reveal:$('reveal'), rating:$('rating'), hint:$('hint'), streak:$('streak'), source:$('source') };
+    const els = { book:$('book'), deck:$('deck'), order:$('order'), card:$('card'), label:$('label'), term:$('term'), phonetic:$('phonetic'), meaning:$('meaning'), count:$('count'), progress:$('progress'), due:$('due'), learned:$('learned'), today:$('today'), reveal:$('reveal'), rating:$('rating'), hint:$('hint'), streak:$('streak'), source:$('source') };
     function save() { localStorage.setItem(key, JSON.stringify(state)); }
     function scopedWords() { const inBook = words.filter(w => w.book === activeBook); return activeDeck === '全部词库' ? inBook : inBook.filter(w => w.deck === activeDeck); }
-    function dueWords() { const now = Date.now(); return scopedWords().filter(w => !state.reviews[w.id] || state.reviews[w.id].next <= now); }
-    function chooseWord() { const due = dueWords(); const pool = due.length ? due : scopedWords(); const except = pool.filter(w => !current || w.id !== current.id); current = (except.length ? except : pool)[Math.floor(Math.random() * (except.length ? except.length : pool.length))]; revealed = false; renderCard(); }
-    function renderCard() { if (!current) return; els.label.textContent = current.deck; els.term.textContent = current.term; els.meaning.textContent = current.meaning; els.phonetic.textContent = current.term.length < 22 ? 'English technical vocabulary' : ''; els.card.classList.remove('revealed'); els.reveal.hidden = false; els.rating.hidden = true; els.hint.textContent = '先在脑中回忆中文含义'; renderStats(); }
-    function renderStats() { const scoped = scopedWords(), due = dueWords(); const learned = scoped.filter(w => (state.reviews[w.id]?.level || 0) >= 3).length; els.due.textContent = due.length; els.learned.textContent = learned; els.today.textContent = state.doneToday; els.count.textContent = `${scoped.length} 词 · ${due.length} 待复习`; els.progress.style.width = `${Math.min(100, state.session * 10)}%`; els.streak.textContent = state.studiedToday ? `今天已复习 ${state.studiedToday} 词` : '从第 1 张开始'; els.source.textContent = activeBook === '专业英语' ? '词库来自《专业英语》' : '词库来自《电路、模电、半导体英语词汇》'; }
-    function reveal() { if (revealed) return; revealed = true; els.card.classList.add('revealed'); els.reveal.hidden = true; els.rating.hidden = false; els.hint.textContent = '现在，选择你对这个词的掌握程度'; }
-    function rate(rating) { if (!revealed) return reveal(); const minutes = { again:1, hard:10, good:1440, easy:5760 }[rating]; const currentReview = state.reviews[current.id] || { level:0 }; const delta = { again:-1, hard:0, good:1, easy:2 }[rating]; state.reviews[current.id] = { level:Math.max(0, Math.min(5, currentReview.level + delta)), next:Date.now() + minutes * 60 * 1000 }; state.doneToday += 1; state.studiedToday += 1; state.session += 1; save(); chooseWord(); }
+    function reviewOf(word) { return state.reviews[word.id] || { level:0, count:0, unfamiliar:false }; }
+    function dueWords() { const now = Date.now(); return scopedWords().filter(w => { const review = state.reviews[w.id]; return !review || !review.next || review.next <= now; }); }
+    function setCurrent(word) { if (!word) return; current = word; state.currentId = word.id; state.activeBook = activeBook; state.activeDeck = activeDeck; state.order = els.order.value; save(); renderCard(); }
+    function pickRandom(pool) { const choices = pool.filter(w => !current || w.id !== current.id); const candidates = choices.length ? choices : pool; return candidates[Math.floor(Math.random() * candidates.length)]; }
+    function chooseWord() {
+      const scoped = scopedWords();
+      if (!scoped.length) return;
+      if (els.order.value === 'sequential') {
+        const index = current ? scoped.findIndex(w => w.id === current.id) : -1;
+        return setCurrent(scoped[(index + 1 + scoped.length) % scoped.length]);
+      }
+      if (els.order.value === 'random') return setCurrent(pickRandom(scoped));
+      if (els.order.value === 'difficult') {
+        const difficult = scoped.filter(w => { const review = reviewOf(w); return review.unfamiliar || review.level < 2; });
+        return setCurrent(pickRandom(difficult.length ? difficult : scoped));
+      }
+      const due = dueWords();
+      const pool = due.length ? due : scoped;
+      return setCurrent(pickRandom(pool));
+    }
+    function restoreWord() { const saved = scopedWords().find(w => w.id === state.currentId); if (saved) setCurrent(saved); else chooseWord(); }
+    function renderCard() {
+      if (!current) return;
+      const review = reviewOf(current);
+      els.label.textContent = current.deck;
+      els.term.textContent = current.term;
+      els.meaning.textContent = current.meaning;
+      els.phonetic.textContent = `已复习 ${review.count || 0} 次`;
+      $('toggleUnfamiliar').classList.toggle('is-flagged', Boolean(review.unfamiliar));
+      $('toggleUnfamiliar').textContent = review.unfamiliar ? '●' : '○';
+      $('toggleUnfamiliar').setAttribute('aria-label', review.unfamiliar ? '取消不熟悉标记' : '标为不熟悉');
+      $('toggleUnfamiliar').setAttribute('title', review.unfamiliar ? '取消不熟悉标记' : '标为不熟悉');
+      els.card.classList.remove('revealed');
+      els.reveal.hidden = false;
+      els.rating.hidden = true;
+      els.hint.textContent = '先在脑中回忆中文含义';
+      renderStats();
+    }
+    function renderStats() {
+      const scoped = scopedWords(), due = dueWords();
+      const learned = scoped.filter(w => (reviewOf(w).level || 0) >= 3).length;
+      els.due.textContent = due.length;
+      els.learned.textContent = learned;
+      els.today.textContent = state.doneToday;
+      els.count.textContent = `${scoped.length} 词 · ${due.length} 待复习`;
+      const sequentialPosition = current ? scoped.findIndex(w => w.id === current.id) + 1 : 0;
+      els.progress.style.width = `${els.order.value === 'sequential' && scoped.length ? sequentialPosition / scoped.length * 100 : Math.min(100, learned / Math.max(1, scoped.length) * 100)}%`;
+      els.streak.textContent = state.studiedToday ? `今天已复习 ${state.studiedToday} 词` : '从上次进度继续';
+      els.source.textContent = activeBook === '专业英语' ? '词库来自《专业英语》' : '词库来自《电路、模电、半导体英语词汇》';
+    }
+    function reveal() { if (revealed) return; revealed = true; els.card.classList.add('revealed'); els.reveal.hidden = true; els.rating.hidden = false; els.hint.textContent = `当前词已复习 ${reviewOf(current).count || 0} 次，选择本次掌握程度`; }
+    function rate(rating) {
+      if (!revealed) return reveal();
+      const minutes = { again:1, hard:10, good:1440, easy:5760 }[rating];
+      const currentReview = reviewOf(current);
+      const delta = { again:-1, hard:0, good:1, easy:2 }[rating];
+      state.reviews[current.id] = { ...currentReview, level:Math.max(0, Math.min(5, currentReview.level + delta)), count:(currentReview.count || 0) + 1, lastRating:rating, unfamiliar:rating === 'again' || rating === 'hard' ? true : rating === 'easy' ? false : Boolean(currentReview.unfamiliar), next:Date.now() + minutes * 60 * 1000 };
+      state.doneToday += 1;
+      state.studiedToday += 1;
+      state.session += 1;
+      save();
+      chooseWord();
+    }
     function speak() { if (!('speechSynthesis' in window) || !current) return; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(current.term); utterance.lang = 'en-US'; utterance.rate = .78; speechSynthesis.speak(utterance); }
     function updateDeckOptions() { els.deck.replaceChildren(new Option('全部词库', '全部词库')); Object.keys(books[activeBook]).forEach(name => els.deck.add(new Option(name, name))); els.deck.value = activeDeck; }
+    function renderWordbook() {
+      const filter = $('wordbookFilter').value;
+      const scoped = scopedWords();
+      const visible = scoped.filter(word => {
+        const review = reviewOf(word);
+        if (filter === 'unfamiliar') return Boolean(review.unfamiliar);
+        if (filter === 'learning') return (review.count || 0) > 0 && review.level < 3 && !review.unfamiliar;
+        if (filter === 'learned') return review.level >= 3;
+        return true;
+      });
+      $('wordbookSummary').textContent = `${activeBook} · ${activeDeck} · ${visible.length} 词`;
+      const list = $('wordbookList');
+      if (!visible.length) { list.replaceChildren(Object.assign(document.createElement('p'), { className:'wordbook-empty', textContent:'这里还没有词。' })); return; }
+      list.replaceChildren(...visible.map(word => {
+        const review = reviewOf(word), row = document.createElement('button');
+        row.className = 'wordbook-row';
+        row.innerHTML = `<span><strong>${word.term}</strong><span>${word.meaning}</span></span><small>复习 ${review.count || 0} 次${review.unfamiliar ? ' · 不熟悉' : ''}</small>`;
+        row.addEventListener('click', () => { activeBook = word.book; activeDeck = word.deck; els.book.value = activeBook; updateDeckOptions(); els.deck.value = activeDeck; $('wordbookDialog').close(); setCurrent(word); });
+        return row;
+      }));
+    }
     Object.keys(books).forEach(name => els.book.add(new Option(name, name)));
     els.book.value = activeBook;
     updateDeckOptions();
+    if (!books[activeBook][activeDeck]) activeDeck = '全部词库';
+    els.deck.value = activeDeck;
+    els.order.value = state.order;
     els.book.addEventListener('change', e => { activeBook = e.target.value; activeDeck = '全部词库'; state.session = 0; updateDeckOptions(); chooseWord(); });
     els.deck.addEventListener('change', e => { activeDeck = e.target.value; state.session = 0; chooseWord(); });
+    els.order.addEventListener('change', () => { state.order = els.order.value; save(); chooseWord(); });
     els.reveal.addEventListener('click', reveal);
-    els.card.addEventListener('click', e => { if (e.target.id !== 'listen') reveal(); });
+    els.card.addEventListener('click', e => { if (!['listen', 'toggleUnfamiliar'].includes(e.target.id)) reveal(); });
     $('listen').addEventListener('click', e => { e.stopPropagation(); speak(); });
+    $('toggleUnfamiliar').addEventListener('click', e => { e.stopPropagation(); const review = reviewOf(current); state.reviews[current.id] = { ...review, unfamiliar:!review.unfamiliar }; save(); renderCard(); });
     els.rating.addEventListener('click', e => { const button = e.target.closest('[data-rating]'); if (button) rate(button.dataset.rating); });
+    $('openWordbook').addEventListener('click', () => { $('wordbookFilter').value = 'all'; renderWordbook(); $('wordbookDialog').showModal(); });
+    $('closeWordbook').addEventListener('click', () => $('wordbookDialog').close());
+    $('wordbookFilter').addEventListener('change', renderWordbook);
     $('about').addEventListener('click', () => $('aboutDialog').showModal());
     $('closeAbout').addEventListener('click', () => $('aboutDialog').close());
     const passages = window.readingPassages;
@@ -650,7 +762,7 @@ word|字`
       }
     });
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
-    chooseWord();
+    restoreWord();
   </script>
 </body>
 </html>

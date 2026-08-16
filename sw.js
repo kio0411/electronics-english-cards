@@ -1,4 +1,4 @@
-const CACHE = 'dianying-cards-v8';
+const CACHE = 'dianying-cards-v9';
 const ASSETS = ['./', './index.html', './additional-book.js', './reading-passages.js', './interview-questions.js', './manifest.webmanifest'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
