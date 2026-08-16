@@ -12,7 +12,7 @@
     * { box-sizing:border-box; }
     body { margin:0; min-height:100svh; color:var(--ink); background:var(--paper); font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; letter-spacing:0; }
     button, select { font:inherit; }
-    button { cursor:pointer; }
+    button { cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; }
     .app { width:min(100%, 620px); min-height:100svh; margin:auto; padding:calc(18px + env(safe-area-inset-top)) 20px calc(22px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; }
     header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:22px; }
     .brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:18px; }
@@ -69,7 +69,8 @@
     .wordbook-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .wordbook-head h2 { margin:0; }
     .wordbook-head button { min-width:40px; padding:0 12px; }
-    .wordbook-filter { width:100%; margin:14px 0 10px; border:1px solid var(--line); border-radius:6px; padding:10px; color:var(--green-dark); background:#f1f5f2; font:inherit; font-weight:700; }
+    .wordbook-filter, .wordbook-search { width:100%; margin:14px 0 10px; border:1px solid var(--line); border-radius:6px; padding:10px; color:var(--green-dark); background:#f1f5f2; font:inherit; font-weight:700; }
+    .wordbook-search { margin:0 0 10px; background:#fff; font-weight:500; }
     .wordbook-summary { margin:0 0 10px; color:var(--muted); font-size:13px; }
     .wordbook-list { max-height:min(540px, calc(100svh - 190px)); overflow:auto; border-top:1px solid var(--line); }
     .wordbook-row { width:100%; display:grid; grid-template-columns:1fr auto; gap:12px; padding:13px 2px; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; color:var(--ink); text-align:left; }
@@ -77,6 +78,7 @@
     .wordbook-row span { display:block; margin-top:3px; color:var(--muted); font-size:13px; }
     .wordbook-row small { align-self:center; color:var(--green); font-size:12px; font-weight:800; white-space:nowrap; }
     .wordbook-empty { margin:30px 0; color:var(--muted); text-align:center; font-size:14px; }
+    .wordbook-more { width:100%; min-height:44px; margin-top:10px; border:1px solid var(--green-dark); border-radius:6px; background:#fff; color:var(--green-dark); font-weight:800; }
     .reader { display:flex; flex:1; flex-direction:column; }
     .reader-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:15px; }
     .reader-top select { width:100%; min-width:0; border:0; color:var(--green-dark); background:transparent; font-weight:800; font-size:16px; }
@@ -200,7 +202,7 @@
     </section>
   </div>
   <dialog id="aboutDialog"><h2>电英词卡</h2><p>这是根据两份专业英语词汇 PDF 整理的离线词卡。点按卡片或“显示释义”后，根据掌握程度评分。学习位置、复习次数和不熟悉词本会保存在本设备浏览器中；更换浏览器或清除网站数据会重置记录。</p><button id="closeAbout">知道了</button></dialog>
-  <dialog class="wordbook-dialog" id="wordbookDialog"><div class="wordbook-head"><h2>词本</h2><button id="closeWordbook" aria-label="关闭词本" title="关闭词本">×</button></div><select class="wordbook-filter" id="wordbookFilter" aria-label="筛选词本"><option value="all">全部词</option><option value="unfamiliar">不熟悉</option><option value="learning">学习中</option><option value="learned">已掌握</option></select><p class="wordbook-summary" id="wordbookSummary"></p><div class="wordbook-list" id="wordbookList"></div></dialog>
+  <dialog class="wordbook-dialog" id="wordbookDialog"><div class="wordbook-head"><h2>词本</h2><button id="closeWordbook" aria-label="关闭词本" title="关闭词本">×</button></div><select class="wordbook-filter" id="wordbookFilter" aria-label="筛选词本"><option value="all">全部词</option><option value="unfamiliar">不熟悉</option><option value="learning">学习中</option><option value="learned">已掌握</option></select><input class="wordbook-search" id="wordbookSearch" type="search" placeholder="搜索英文或中文" aria-label="搜索词本" autocomplete="off" /><p class="wordbook-summary" id="wordbookSummary"></p><div class="wordbook-list" id="wordbookList"></div><button class="wordbook-more" id="wordbookMore" hidden>继续加载</button></dialog>
   <script src="additional-book.js"></script>
   <script src="reading-passages.js"></script>
   <script src="interview-questions.js"></script>
@@ -554,18 +556,24 @@ word|字`
     const key = 'dianying-cards-v2';
     const legacyKey = 'dianying-cards-v1';
     const defaultState = { reviews:{}, today:'', doneToday:0, studiedToday:0, session:0, currentId:null, activeBook:'专业英语', activeDeck:'全部词库', order:'review' };
-    let state = JSON.parse(localStorage.getItem(key) || localStorage.getItem(legacyKey) || 'null') || defaultState;
-    state.reviews ||= {};
-    state.currentId ??= null;
+    function readState(storageKey, fallback) {
+      try { const raw = window.localStorage.getItem(storageKey); if (!raw) return fallback; const parsed = JSON.parse(raw); return parsed && typeof parsed === 'object' ? parsed : fallback; } catch (error) { return fallback; }
+    }
+    function writeState(storageKey, value) {
+      try { window.localStorage.setItem(storageKey, JSON.stringify(value)); return true; } catch (error) { return false; }
+    }
+    let state = readState(key, readState(legacyKey, { ...defaultState }));
+    if (!state.reviews || typeof state.reviews !== 'object') state.reviews = {};
+    if (!Object.prototype.hasOwnProperty.call(state, 'currentId')) state.currentId = null;
     state.activeBook = books[state.activeBook] ? state.activeBook : '专业英语';
-    state.activeDeck ??= '全部词库';
-    state.order ??= 'review';
+    if (!state.activeDeck) state.activeDeck = '全部词库';
+    if (!state.order) state.order = 'review';
     const todayKey = new Date().toISOString().slice(0, 10);
     if (state.today !== todayKey) { state.today = todayKey; state.doneToday = 0; state.studiedToday = 0; }
     let activeBook = state.activeBook, activeDeck = state.activeDeck, current, revealed = false;
     const $ = id => document.getElementById(id);
     const els = { book:$('book'), deck:$('deck'), order:$('order'), card:$('card'), label:$('label'), term:$('term'), phonetic:$('phonetic'), meaning:$('meaning'), count:$('count'), progress:$('progress'), due:$('due'), learned:$('learned'), today:$('today'), reveal:$('reveal'), rating:$('rating'), hint:$('hint'), streak:$('streak'), source:$('source') };
-    function save() { localStorage.setItem(key, JSON.stringify(state)); }
+    function save() { writeState(key, state); }
     function scopedWords() { const inBook = words.filter(w => w.book === activeBook); return activeDeck === '全部词库' ? inBook : inBook.filter(w => w.deck === activeDeck); }
     function reviewOf(word) { return state.reviews[word.id] || { level:0, count:0, unfamiliar:false }; }
     function dueWords() { const now = Date.now(); return scopedWords().filter(w => { const review = state.reviews[w.id]; return !review || !review.next || review.next <= now; }); }
@@ -632,24 +640,29 @@ word|字`
     }
     function speak() { if (!('speechSynthesis' in window) || !current) return; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(current.term); utterance.lang = 'en-US'; utterance.rate = .78; speechSynthesis.speak(utterance); }
     function updateDeckOptions() { els.deck.replaceChildren(new Option('全部词库', '全部词库')); Object.keys(books[activeBook]).forEach(name => els.deck.add(new Option(name, name))); els.deck.value = activeDeck; }
+    let wordbookLimit = 80;
     function renderWordbook() {
       const filter = $('wordbookFilter').value;
+      const query = ($('wordbookSearch').value || '').trim().toLocaleLowerCase();
       const scoped = scopedWords();
       const visible = scoped.filter(word => {
         const review = reviewOf(word);
+        if (query && !(word.term + ' ' + word.meaning).toLocaleLowerCase().includes(query)) return false;
         if (filter === 'unfamiliar') return Boolean(review.unfamiliar);
         if (filter === 'learning') return (review.count || 0) > 0 && review.level < 3 && !review.unfamiliar;
         if (filter === 'learned') return review.level >= 3;
         return true;
       });
-      $('wordbookSummary').textContent = `${activeBook} · ${activeDeck} · ${visible.length} 词`;
+      $('wordbookSummary').textContent = activeBook + ' · ' + activeDeck + ' · ' + visible.length + ' 词' + (visible.length > wordbookLimit ? ' · 已显示 ' + wordbookLimit : '');
       const list = $('wordbookList');
-      if (!visible.length) { list.replaceChildren(Object.assign(document.createElement('p'), { className:'wordbook-empty', textContent:'这里还没有词。' })); return; }
-      list.replaceChildren(...visible.map(word => {
+      if (!visible.length) { list.replaceChildren(Object.assign(document.createElement('p'), { className:'wordbook-empty', textContent:'这里还没有词。' })); $('wordbookMore').hidden = true; return; }
+      $('wordbookMore').hidden = visible.length <= wordbookLimit;
+      list.replaceChildren(...visible.slice(0, wordbookLimit).map(word => {
         const review = reviewOf(word), row = document.createElement('button');
         row.className = 'wordbook-row';
-        row.innerHTML = `<span><strong>${word.term}</strong><span>${word.meaning}</span></span><small>复习 ${review.count || 0} 次${review.unfamiliar ? ' · 不熟悉' : ''}</small>`;
-        row.addEventListener('click', () => { activeBook = word.book; activeDeck = word.deck; els.book.value = activeBook; updateDeckOptions(); els.deck.value = activeDeck; $('wordbookDialog').close(); setCurrent(word); });
+        const text = document.createElement('span'), term = document.createElement('strong'), meaning = document.createElement('span'), meta = document.createElement('small');
+        term.textContent = word.term; meaning.textContent = word.meaning; meta.textContent = '复习 ' + (review.count || 0) + ' 次' + (review.unfamiliar ? ' · 不熟悉' : ''); text.append(term, meaning); row.append(text, meta);
+        row.addEventListener('click', () => { activeBook = word.book; activeDeck = word.deck; els.book.value = activeBook; updateDeckOptions(); els.deck.value = activeDeck; closeDialog($('wordbookDialog')); setCurrent(word); });
         return row;
       }));
     }
@@ -667,11 +680,15 @@ word|字`
     $('listen').addEventListener('click', e => { e.stopPropagation(); speak(); });
     $('toggleUnfamiliar').addEventListener('click', e => { e.stopPropagation(); const review = reviewOf(current); state.reviews[current.id] = { ...review, unfamiliar:!review.unfamiliar }; save(); renderCard(); });
     els.rating.addEventListener('click', e => { const button = e.target.closest('[data-rating]'); if (button) rate(button.dataset.rating); });
-    $('openWordbook').addEventListener('click', () => { $('wordbookFilter').value = 'all'; renderWordbook(); $('wordbookDialog').showModal(); });
-    $('closeWordbook').addEventListener('click', () => $('wordbookDialog').close());
+    function openDialog(dialog) { if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', ''); }
+    function closeDialog(dialog) { if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open'); }
+    $('openWordbook').addEventListener('click', () => { $('wordbookFilter').value = 'all'; $('wordbookSearch').value = ''; wordbookLimit = 80; renderWordbook(); openDialog($('wordbookDialog')); });
+    $('closeWordbook').addEventListener('click', () => closeDialog($('wordbookDialog')));
     $('wordbookFilter').addEventListener('change', renderWordbook);
-    $('about').addEventListener('click', () => $('aboutDialog').showModal());
-    $('closeAbout').addEventListener('click', () => $('aboutDialog').close());
+    $('wordbookSearch').addEventListener('input', () => { wordbookLimit = 80; renderWordbook(); });
+    $('wordbookMore').addEventListener('click', () => { wordbookLimit += 80; renderWordbook(); });
+    $('about').addEventListener('click', () => openDialog($('aboutDialog')));
+    $('closeAbout').addEventListener('click', () => closeDialog($('aboutDialog')));
     const passages = window.readingPassages;
     let passageIndex = 0;
     function renderPassage() { const item = passages[passageIndex]; $('passageSelect').value = String(passageIndex); $('passageCount').textContent = `${passageIndex + 1} / ${passages.length}`; $('passageTopic').textContent = item.topic; $('passageTitle').textContent = item.title; $('passageMeta').textContent = `${item.words} words · about 1 minute`; $('passageText').textContent = item.text; $('passageTranslation').textContent = item.translation; $('passageTranslation').hidden = true; $('translationToggle').textContent = '显示参考译文'; $('keywordList').replaceChildren(...item.keywords.map(word => { const tag = document.createElement('span'); tag.textContent = word; return tag; })); }
@@ -680,14 +697,15 @@ word|字`
     $('translationToggle').addEventListener('click', () => { const target = $('passageTranslation'); target.hidden = !target.hidden; $('translationToggle').textContent = target.hidden ? '显示参考译文' : '隐藏参考译文'; });
     $('previousPassage').addEventListener('click', () => { passageIndex = (passageIndex + passages.length - 1) % passages.length; renderPassage(); });
     $('nextPassage').addEventListener('click', () => { passageIndex = (passageIndex + 1) % passages.length; renderPassage(); });
-    $('passageListen').addEventListener('click', () => { speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(passages[passageIndex].text); utterance.lang = 'en-US'; utterance.rate = .82; speechSynthesis.speak(utterance); });
+    $('passageListen').addEventListener('click', () => { if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === 'undefined') return; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(passages[passageIndex].text); utterance.lang = 'en-US'; utterance.rate = .82; speechSynthesis.speak(utterance); });
     const interviewQuestions = window.interviewQuestions;
     const interviewKey = 'dianying-interview-v1';
     const interviewDefaultState = { reviews:{}, today:'', doneToday:0 };
-    let interviewState = JSON.parse(localStorage.getItem(interviewKey) || 'null') || interviewDefaultState;
+    let interviewState = readState(interviewKey, { ...interviewDefaultState });
+    if (!interviewState.reviews || typeof interviewState.reviews !== 'object') interviewState.reviews = {};
     if (interviewState.today !== todayKey) { interviewState.today = todayKey; interviewState.doneToday = 0; }
     let interviewIndex = 0, interviewRevealed = false, currentMode = 'cards';
-    function saveInterview() { localStorage.setItem(interviewKey, JSON.stringify(interviewState)); }
+    function saveInterview() { writeState(interviewKey, interviewState); }
     function interviewDue() { const now = Date.now(); return interviewQuestions.filter((item, index) => !interviewState.reviews[`interview-${index}`] || interviewState.reviews[`interview-${index}`].next <= now); }
     function renderInterview() {
       const item = interviewQuestions[interviewIndex];
@@ -701,7 +719,7 @@ word|字`
       $('interviewReveal').hidden = false;
       $('interviewRating').hidden = true;
       const due = interviewDue();
-      const learned = interviewQuestions.filter((item, index) => (interviewState.reviews[`interview-${index}`]?.level || 0) >= 3).length;
+      const learned = interviewQuestions.filter((item, index) => { const review = interviewState.reviews[`interview-${index}`]; return (review && review.level || 0) >= 3; }).length;
       $('interviewDue').textContent = due.length;
       $('interviewLearned').textContent = learned;
       $('interviewToday').textContent = interviewState.doneToday;
@@ -731,7 +749,7 @@ word|字`
     $('interviewSelect').addEventListener('change', e => { interviewIndex = Number(e.target.value); renderInterview(); });
     $('interviewReveal').addEventListener('click', revealInterview);
     $('interviewCard').addEventListener('click', e => { if (e.target.id !== 'interviewListen') revealInterview(); });
-    $('interviewListen').addEventListener('click', e => { e.stopPropagation(); speechSynthesis.cancel(); const item = interviewQuestions[interviewIndex]; const utterance = new SpeechSynthesisUtterance(`${item.question}. ${item.answer}`); utterance.lang = 'en-US'; utterance.rate = .78; speechSynthesis.speak(utterance); });
+    $('interviewListen').addEventListener('click', e => { e.stopPropagation(); if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === 'undefined') return; speechSynthesis.cancel(); const item = interviewQuestions[interviewIndex]; const utterance = new SpeechSynthesisUtterance(`${item.question}. ${item.answer}`); utterance.lang = 'en-US'; utterance.rate = .78; speechSynthesis.speak(utterance); });
     $('interviewRating').addEventListener('click', e => { const button = e.target.closest('[data-interview-rating]'); if (button) rateInterview(button.dataset.interviewRating); });
     $('previousInterview').addEventListener('click', () => { interviewIndex = (interviewIndex + interviewQuestions.length - 1) % interviewQuestions.length; renderInterview(); });
     $('nextInterview').addEventListener('click', () => { interviewIndex = (interviewIndex + 1) % interviewQuestions.length; renderInterview(); });
