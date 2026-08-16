@@ -10,6 +10,7 @@
   <style>
     :root { --ink:#13211f; --muted:#66736f; --line:#d9e0dc; --paper:#fbfcfa; --panel:#ffffff; --mint:#d7f0df; --green:#0e6b50; --green-dark:#0e2523; --yellow:#f4d87a; --red:#ce5d48; --shadow:0 15px 35px rgba(20, 43, 38, .11); }
     * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
     body { margin:0; min-height:100svh; color:var(--ink); background:var(--paper); font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; letter-spacing:0; }
     button, select { font:inherit; }
     button { cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; }
@@ -207,6 +208,17 @@
   <script src="reading-passages.js"></script>
   <script src="interview-questions.js"></script>
   <script>
+    window.__cardsVersion = '20260816.2';
+    // Keep the core study flow available when a stale offline cache misses an optional data file.
+    if (!Element.prototype.replaceChildren) {
+      Element.prototype.replaceChildren = function() { while (this.firstChild) this.removeChild(this.firstChild); for (let i = 0; i < arguments.length; i += 1) this.appendChild(arguments[i]); };
+    }
+    if (!Element.prototype.closest) {
+      Element.prototype.closest = function(selector) { let node = this; while (node && node.nodeType === 1) { if (node.matches && node.matches(selector)) return node; node = node.parentElement; } return null; };
+    }
+    const additionalBookData = window.additionalBookData && typeof window.additionalBookData === 'object' ? window.additionalBookData : {};
+    const fallbackPassages = [{ topic:'集成电路', title:'Device Scaling', words:58, text:'Device scaling improves circuit density and performance, but it also increases variability and power density. Designers therefore combine accurate models, careful layout, and energy-aware architectures to maintain reliable operation.', translation:'器件缩放提高了电路密度和性能，但也会增大参数波动和功率密度。因此，设计人员需要结合精确模型、审慎版图与能效架构，以保持可靠运行。', keywords:['scaling','variability','layout','reliability'] }];
+    const fallbackInterviewQuestions = [{ category:'自我介绍', question:'Could you briefly introduce yourself?', answer:'I am a senior undergraduate student majoring in Integrated Circuit Design and Integrated Systems. My coursework and projects have strengthened my interest in digital IC design, verification, and system-level optimization. I am preparing for graduate study and hope to continue developing practical research skills in this field.', translation:'我是一名集成电路设计与集成系统专业的大四学生。课程学习和项目经历增强了我对数字集成电路设计、验证和系统级优化的兴趣。我正在准备研究生阶段的学习，希望继续培养这一领域的实践研究能力。' }];
     const decks = {
       '电路基础': `ideal voltage source|理想电压源
 ideal current source|理想电流源
@@ -546,7 +558,7 @@ word|字`
       '专业英语': decks,
       '东大电路、模电、半导体': {
         '电路、模电、数电': Object.values(decks).join('\n'),
-        ...window.additionalBookData
+        ...additionalBookData
       }
     };
     const words = Object.entries(books).flatMap(([book, deckSet]) => Object.entries(deckSet).flatMap(([deck, source]) => source.split('\n').map((line, index) => {
@@ -598,6 +610,7 @@ word|字`
     function restoreWord() { const saved = scopedWords().find(w => w.id === state.currentId); if (saved) setCurrent(saved); else chooseWord(); }
     function renderCard() {
       if (!current) return;
+      revealed = false;
       const review = reviewOf(current);
       els.label.textContent = current.deck;
       els.term.textContent = current.term;
@@ -675,8 +688,16 @@ word|字`
     els.book.addEventListener('change', e => { activeBook = e.target.value; activeDeck = '全部词库'; state.session = 0; updateDeckOptions(); chooseWord(); });
     els.deck.addEventListener('change', e => { activeDeck = e.target.value; state.session = 0; chooseWord(); });
     els.order.addEventListener('change', () => { state.order = els.order.value; save(); chooseWord(); });
-    els.reveal.addEventListener('click', reveal);
+    function revealFromPointer(event) {
+      if (event && event.type === 'pointerdown' && event.button !== undefined && event.button !== 0) return;
+      if (event && event.cancelable) event.preventDefault();
+      reveal();
+    }
+    // Use both the classic handler and pointer input so the reveal control works in desktop and mobile browsers.
+    els.reveal.onclick = revealFromPointer;
+    els.reveal.addEventListener('pointerdown', revealFromPointer);
     els.card.addEventListener('click', e => { if (!['listen', 'toggleUnfamiliar'].includes(e.target.id)) reveal(); });
+    els.card.addEventListener('pointerdown', e => { if (!['listen', 'toggleUnfamiliar'].includes(e.target.id)) revealFromPointer(e); });
     $('listen').addEventListener('click', e => { e.stopPropagation(); speak(); });
     $('toggleUnfamiliar').addEventListener('click', e => { e.stopPropagation(); const review = reviewOf(current); state.reviews[current.id] = { ...review, unfamiliar:!review.unfamiliar }; save(); renderCard(); });
     els.rating.addEventListener('click', e => { const button = e.target.closest('[data-rating]'); if (button) rate(button.dataset.rating); });
@@ -689,7 +710,7 @@ word|字`
     $('wordbookMore').addEventListener('click', () => { wordbookLimit += 80; renderWordbook(); });
     $('about').addEventListener('click', () => openDialog($('aboutDialog')));
     $('closeAbout').addEventListener('click', () => closeDialog($('aboutDialog')));
-    const passages = window.readingPassages;
+    const passages = Array.isArray(window.readingPassages) && window.readingPassages.length ? window.readingPassages : fallbackPassages;
     let passageIndex = 0;
     function renderPassage() { const item = passages[passageIndex]; $('passageSelect').value = String(passageIndex); $('passageCount').textContent = `${passageIndex + 1} / ${passages.length}`; $('passageTopic').textContent = item.topic; $('passageTitle').textContent = item.title; $('passageMeta').textContent = `${item.words} words · about 1 minute`; $('passageText').textContent = item.text; $('passageTranslation').textContent = item.translation; $('passageTranslation').hidden = true; $('translationToggle').textContent = '显示参考译文'; $('keywordList').replaceChildren(...item.keywords.map(word => { const tag = document.createElement('span'); tag.textContent = word; return tag; })); }
     passages.forEach((item, index) => $('passageSelect').add(new Option(`${index + 1}. ${item.title}`, String(index))));
@@ -698,7 +719,7 @@ word|字`
     $('previousPassage').addEventListener('click', () => { passageIndex = (passageIndex + passages.length - 1) % passages.length; renderPassage(); });
     $('nextPassage').addEventListener('click', () => { passageIndex = (passageIndex + 1) % passages.length; renderPassage(); });
     $('passageListen').addEventListener('click', () => { if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === 'undefined') return; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(passages[passageIndex].text); utterance.lang = 'en-US'; utterance.rate = .82; speechSynthesis.speak(utterance); });
-    const interviewQuestions = window.interviewQuestions;
+    const interviewQuestions = Array.isArray(window.interviewQuestions) && window.interviewQuestions.length ? window.interviewQuestions : fallbackInterviewQuestions;
     const interviewKey = 'dianying-interview-v1';
     const interviewDefaultState = { reviews:{}, today:'', doneToday:0 };
     let interviewState = readState(interviewKey, { ...interviewDefaultState });
@@ -779,7 +800,7 @@ word|字`
         if (revealed && ['1','2','3','4'].includes(e.key)) rate(['again','hard','good','easy'][Number(e.key)-1]);
       }
     });
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(registration => registration.update()).catch(() => undefined);
     restoreWord();
   </script>
 </body>
