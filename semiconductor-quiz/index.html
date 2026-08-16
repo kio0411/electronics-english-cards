@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102a43">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>半导体物理刷题</title>
+  <style>
+    :root { --ink:#102a43; --muted:#627d98; --line:#d9e2ec; --paper:#f6f8fb; --card:#fff; --blue:#1769aa; --teal:#168aad; --amber:#f59e0b; --red:#c2410c; --green:#16794a; }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:var(--paper); font-family:Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif; }
+    button,select,input { font:inherit; }
+    button { border:0; cursor:pointer; }
+    .app { width:min(760px,100%); margin:auto; min-height:100vh; padding:16px 14px 30px; }
+    header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .brand { display:flex; gap:11px; align-items:center; }
+    .mark { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; color:#fff; background:var(--ink); font-weight:800; font-size:20px; }
+    h1,h2,p { margin:0; }
+    .brand h1 { font-size:20px; line-height:1.2; }
+    .brand p { color:var(--muted); font-size:12px; margin-top:4px; }
+    .today { color:var(--muted); font-size:12px; text-align:right; line-height:1.5; }
+    .today strong { display:block; color:var(--blue); font-size:18px; }
+    .tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; background:#e8eef4; border-radius:10px; padding:4px; margin-bottom:14px; }
+    .tabs button { padding:10px; border-radius:7px; background:transparent; color:var(--muted); font-weight:700; }
+    .tabs button[aria-selected=true] { color:#fff; background:var(--ink); }
+    .controls { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+    .controls label { display:grid; gap:5px; color:var(--muted); font-size:12px; }
+    select,input { width:100%; min-height:40px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; color:var(--ink); background:#fff; outline:none; }
+    select:focus,input:focus,button:focus-visible { outline:3px solid #9ad7f5; outline-offset:1px; }
+    .search { grid-column:1/-1; }
+    .meta-row { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:12px; margin:2px 2px 8px; }
+    .meta-row strong { color:var(--ink); }
+    .progress { height:6px; background:#e5edf4; border-radius:999px; overflow:hidden; margin-bottom:12px; }
+    .progress i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--teal),var(--amber)); transition:width .2s; }
+    .question-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; box-shadow:0 8px 24px rgba(16,42,67,.06); }
+    .category { color:var(--teal); font-size:12px; font-weight:800; letter-spacing:.02em; }
+    .question { font-size:clamp(22px,5vw,31px); line-height:1.38; margin-top:12px; }
+    .hint { color:var(--muted); font-size:13px; margin-top:12px; }
+    .answer { margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
+    .label { color:var(--blue); font-size:12px; font-weight:800; margin-bottom:7px; }
+    .answer p { font-size:16px; line-height:1.75; white-space:pre-wrap; }
+    .bonus { margin-top:14px; padding:12px 13px; border-left:3px solid var(--amber); background:#fff8e7; color:#7c4a03; font-size:14px; line-height:1.65; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
+    .actions button { min-height:42px; padding:9px 14px; border-radius:8px; font-weight:750; }
+    .primary { color:#fff; background:var(--blue); }
+    .soft { color:var(--ink); background:#eaf2f8; }
+    .known { color:#fff; background:var(--green); }
+    .unknown { color:#fff; background:var(--red); }
+    .bookmark { margin-left:auto; color:var(--red); background:#fff0eb; }
+    .nav-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .nav-actions button { min-height:42px; color:var(--ink); background:#fff; border:1px solid var(--line); border-radius:8px; font-weight:700; }
+    button:disabled { cursor:not-allowed; opacity:.45; }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+    .stat { background:#fff; border:1px solid var(--line); border-radius:9px; padding:10px; text-align:center; }
+    .stat strong { display:block; font-size:19px; }
+    .stat span { color:var(--muted); font-size:12px; }
+    .list-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .list-head h2 { font-size:18px; }
+    .list-head span { color:var(--muted); font-size:12px; }
+    .question-list { display:grid; gap:7px; }
+    .list-item { text-align:left; width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); }
+    .list-item.active { border-color:var(--teal); box-shadow:0 0 0 2px rgba(22,138,173,.13); }
+    .list-item b { display:block; font-size:14px; line-height:1.5; }
+    .list-item small { display:block; color:var(--muted); margin-top:5px; }
+    .empty { padding:30px; text-align:center; color:var(--muted); background:#fff; border:1px dashed var(--line); border-radius:10px; }
+    footer { color:var(--muted); font-size:12px; line-height:1.6; text-align:center; margin-top:20px; }
+    @media (max-width:500px) { .app { padding:13px 11px 26px; } .question-card { padding:16px; } .question { font-size:23px; } .actions button { flex:1 1 42%; } .bookmark { margin-left:0; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand"><div class="mark">半</div><div><h1>半导体物理刷题</h1><p>东大集院面试高分回答版</p></div></div>
+      <div class="today"><strong id="todayCount">0</strong>今日已完成</div>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="学习模式">
+      <button id="practiceTab" role="tab" aria-selected="true">刷题</button>
+      <button id="listTab" role="tab" aria-selected="false">题目列表</button>
+    </div>
+
+    <section id="practiceView">
+      <div class="controls">
+        <label>分类<select id="categorySelect" aria-label="选择分类"><option value="all">全部分类</option></select></label>
+        <label>刷题顺序<select id="orderSelect" aria-label="选择刷题顺序"><option value="sequence">文档顺序</option><option value="unseen">未复习优先</option><option value="unknown">不熟悉优先</option><option value="random">随机顺序</option></select></label>
+        <label class="search">搜索题目<input id="searchInput" type="search" placeholder="输入关键词筛选题目" autocomplete="off"></label>
+      </div>
+      <div class="meta-row"><span id="queueLabel">准备开始</span><span><strong id="positionLabel">0 / 0</strong></span></div>
+      <div class="progress"><i id="progressBar"></i></div>
+      <article class="question-card" id="questionCard">
+        <div class="category" id="categoryText"></div>
+        <h2 class="question" id="questionText"></h2>
+        <p class="hint" id="hintText">先尝试用 20-40 秒完整回答，再点击下方按钮核对。</p>
+        <div class="answer" id="answerPanel" hidden>
+          <div class="label">参考回答</div><p id="answerText"></p>
+          <div class="bonus" id="bonusPanel" hidden><b>加分点：</b><span id="bonusText"></span></div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="revealButton">显示高分回答</button>
+          <button class="bookmark" id="unknownButton">○ 标为不熟悉</button>
+        </div>
+        <div class="actions" id="ratingActions" hidden>
+          <button class="known" id="knownButton">记住，下一题</button>
+          <button class="unknown" id="forgotButton">不熟悉，下一题</button>
+        </div>
+        <div class="nav-actions"><button id="previousButton">上一题</button><button id="nextButton">下一题</button></div>
+      </article>
+      <div class="stats"><div class="stat"><strong id="dueCount">0</strong><span>未复习</span></div><div class="stat"><strong id="knownCount">0</strong><span>已记住</span></div><div class="stat"><strong id="unknownCount">0</strong><span>不熟悉</span></div></div>
+    </section>
+
+    <section id="listView" hidden>
+      <div class="list-head"><h2>全部题目</h2><span id="listCount"></span></div>
+      <div class="question-list" id="questionList"></div>
+    </section>
+    <footer>进度和熟悉度保存在当前设备浏览器中，不需要登录；清除浏览器数据会清空记录。</footer>
+  </main>
+  <script src="./questions.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      const questions = Array.isArray(window.semiconductorQuestions) ? window.semiconductorQuestions : [];
+      const key = 'semiconductor-physics-quiz-v1';
+      const $ = (id) => document.getElementById(id);
+      const fallback = { currentId: questions[0]?.id || 0, ratings: {}, today: '', todayDone: 0 };
+      function readState() { try { return Object.assign({}, fallback, JSON.parse(localStorage.getItem(key) || '{}')); } catch (_) { return Object.assign({}, fallback); } }
+      function saveState() { try { localStorage.setItem(key, JSON.stringify(state)); } catch (_) {} }
+      const state = readState();
+      const today = new Date().toISOString().slice(0, 10);
+      if (state.today !== today) { state.today = today; state.todayDone = 0; saveState(); }
+      let filtered = questions.slice();
+      let queue = questions.slice();
+      let cursor = 0;
+      let revealed = false;
+
+      function rating(id) { return state.ratings[id] || { seen: 0, known: 0, unfamiliar: false, last: '' }; }
+      function setCurrent(id) { const index = queue.findIndex((item) => item.id === id); cursor = index >= 0 ? index : 0; state.currentId = queue[cursor]?.id || 0; saveState(); }
+      function rebuild(preferredId) {
+        const cat = $('categorySelect').value;
+        const search = $('searchInput').value.trim().toLowerCase();
+        filtered = questions.filter((item) => (cat === 'all' || item.category === cat) && (!search || item.question.toLowerCase().includes(search) || item.answer.toLowerCase().includes(search)));
+        queue = filtered.slice();
+        const order = $('orderSelect').value;
+        if (order === 'unseen') queue.sort((a, b) => rating(a.id).seen - rating(b.id).seen || a.id - b.id);
+        if (order === 'unknown') queue.sort((a, b) => Number(rating(b.id).unfamiliar) - Number(rating(a.id).unfamiliar) || rating(a.id).seen - rating(b.id).seen);
+        if (order === 'random') queue.sort(() => Math.random() - 0.5);
+        const id = preferredId || state.currentId;
+        setCurrent(id && queue.some((item) => item.id === id) ? id : queue[0]?.id || 0);
+        render();
+      }
+      function render() {
+        const item = queue[cursor];
+        $('queueLabel').textContent = `${filtered.length} 道匹配题目`;
+        $('positionLabel').textContent = item ? `${cursor + 1} / ${queue.length}` : '0 / 0';
+        $('progressBar').style.width = queue.length ? `${((cursor + 1) / queue.length) * 100}%` : '0%';
+        $('questionCard').hidden = !item;
+        $('listCount').textContent = `${filtered.length} 题`;
+        if (!item) { $('questionText').textContent = '没有匹配的题目'; $('listView').hidden = false; return; }
+        const r = rating(item.id);
+        $('categoryText').textContent = item.category;
+        $('questionText').textContent = `${item.number}. ${item.question}`;
+        $('answerText').textContent = item.answer || '文档中暂未填写参考回答。';
+        $('bonusText').textContent = item.bonus;
+        $('bonusPanel').hidden = !item.bonus;
+        $('answerPanel').hidden = !revealed;
+        $('ratingActions').hidden = !revealed;
+        $('revealButton').textContent = revealed ? '收起回答' : '显示高分回答';
+        $('unknownButton').textContent = r.unfamiliar ? '● 已标为不熟悉' : '○ 标为不熟悉';
+        $('previousButton').disabled = cursor <= 0;
+        $('nextButton').disabled = cursor >= queue.length - 1;
+        updateStats();
+        renderList();
+      }
+      function updateStats() {
+        const seen = questions.filter((item) => rating(item.id).seen > 0).length;
+        const known = questions.filter((item) => rating(item.id).known > 0 && !rating(item.id).unfamiliar).length;
+        const unfamiliar = questions.filter((item) => rating(item.id).unfamiliar).length;
+        $('dueCount').textContent = questions.length - seen;
+        $('knownCount').textContent = known;
+        $('unknownCount').textContent = unfamiliar;
+        $('todayCount').textContent = state.todayDone || 0;
+      }
+      function renderList() {
+        const list = $('questionList'); list.replaceChildren();
+        if (!filtered.length) { list.innerHTML = '<div class="empty">没有匹配题目</div>'; return; }
+        filtered.forEach((item) => {
+          const r = rating(item.id); const button = document.createElement('button'); button.className = 'list-item' + (queue[cursor]?.id === item.id ? ' active' : '');
+          const title = document.createElement('b');
+          title.textContent = `${item.number}. ${item.question}`;
+          const meta = document.createElement('small');
+          meta.textContent = `${item.category} · ${r.seen ? `已练 ${r.seen} 次` : '未复习'}${r.unfamiliar ? ' · 不熟悉' : ''}`;
+          button.append(title, meta);
+          button.addEventListener('click', () => { setCurrent(item.id); revealed = false; $('practiceTab').click(); render(); }); list.appendChild(button);
+        });
+      }
+      function move(step) { if (!queue.length) return; cursor = Math.max(0, Math.min(queue.length - 1, cursor + step)); state.currentId = queue[cursor].id; revealed = false; saveState(); render(); }
+      function rate(isKnown) {
+        const item = queue[cursor]; if (!item) return; const r = rating(item.id); r.seen += 1; if (isKnown) r.known += 1; if (!isKnown) r.unfamiliar = true; r.last = today; state.ratings[item.id] = r; state.todayDone = (state.todayDone || 0) + 1; saveState(); revealed = false; if (cursor < queue.length - 1) cursor += 1; state.currentId = queue[cursor]?.id || item.id; saveState(); render();
+      }
+      function setTab(name) { const practice = name === 'practice'; $('practiceView').hidden = !practice; $('listView').hidden = practice; $('practiceTab').setAttribute('aria-selected', String(practice)); $('listTab').setAttribute('aria-selected', String(!practice)); if (!practice) renderList(); }
+      questions.forEach((item) => { if (![...$('categorySelect').options].some((option) => option.value === item.category)) $('categorySelect').add(new Option(item.category, item.category)); });
+      $('practiceTab').addEventListener('click', () => setTab('practice')); $('listTab').addEventListener('click', () => setTab('list'));
+      $('categorySelect').addEventListener('change', () => rebuild()); $('orderSelect').addEventListener('change', () => rebuild()); $('searchInput').addEventListener('input', () => rebuild());
+      $('revealButton').addEventListener('click', () => { revealed = !revealed; render(); }); $('previousButton').addEventListener('click', () => move(-1)); $('nextButton').addEventListener('click', () => move(1));
+      $('knownButton').addEventListener('click', () => rate(true)); $('forgotButton').addEventListener('click', () => rate(false));
+      $('unknownButton').addEventListener('click', () => { const item = queue[cursor]; if (!item) return; const r = rating(item.id); r.unfamiliar = !r.unfamiliar; state.ratings[item.id] = r; saveState(); render(); });
+      document.addEventListener('keydown', (event) => { if (event.target.matches('input,select')) return; if (event.key === ' ') { event.preventDefault(); $('revealButton').click(); } if (event.key === 'ArrowLeft') $('previousButton').click(); if (event.key === 'ArrowRight') $('nextButton').click(); });
+      rebuild(state.currentId);
+    })();
+  </script>
+</body>
+</html>
